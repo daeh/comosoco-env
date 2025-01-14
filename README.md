@@ -202,9 +202,19 @@ pip install -r requirements-minimal.txt
 
 1. Open the VS Code application
 2. Open `VSCProject.code-workspace`
+   ![open-workspace](assets/open-workspace.png) 
+   - You should see that the window name is "comosoco"
+     ![window-name](assets/window-name.png)
+
 3. When prompted, **install recommended extensions**
+   - If you don't see a prompt to install the recommended extensions, make sure you've correctly open the `VSCProject.code-workspace` file. You should see "comosoco" as the window name.
+   - If you're sure you have the workspace open, you can manually install the extensions by searching for `@recommended` in the Extension Pane
+     ![recommended-extensions](assets/recommended-extensions.png)
+   
 4. Open `comosoco/installation-test.ipynb`
 5. Set the Jupyter notebook to use the `.venv` python in `comosoco-env`
+   - See below for screen shots.
+
 6. Run all cells in the notebook - if they complete without error, your setup is working!
 
 ![1](assets/1.png)
