@@ -66,7 +66,13 @@ tasks:
       UPSTREAM_REMOTE: 'upstream'
       UPSTREAM_BRANCH: 'main'
     cmds:
-      - git remote add {.UPSTREAM_REMOTE} https://github.com/daeh/comosoco-env.git
+      - |
+        if git remote get-url {.UPSTREAM_REMOTE} >/dev/null 2>&1; then
+          echo "Fetching changes from {.UPSTREAM_REMOTE}"
+        else
+          echo "The upstream remote ({.UPSTREAM_REMOTE}) does not exist."
+          - git remote add {.UPSTREAM_REMOTE} https://github.com/daeh/comosoco-env.git
+        fi
       - git fetch {.UPSTREAM_REMOTE}
       - git merge {.UPSTREAM_REMOTE}/{.UPSTREAM_BRANCH}
     interactive: true
