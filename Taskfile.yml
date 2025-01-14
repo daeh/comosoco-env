@@ -52,6 +52,25 @@ tasks:
       - uv sync
       # - uv sync --upgrade
 
+  pull-origin:
+    vars:
+      UPSTREAM_REMOTE: 'origin'
+      UPSTREAM_BRANCH: 'main'
+    cmds:
+      - git fetch {.UPSTREAM_REMOTE}
+      - git merge {.UPSTREAM_REMOTE}/{.UPSTREAM_BRANCH}
+    interactive: true
+
+  pull:
+    vars:
+      UPSTREAM_REMOTE: 'upstream'
+      UPSTREAM_BRANCH: 'main'
+    cmds:
+      - git remote add {.UPSTREAM_REMOTE} https://github.com/daeh/comosoco-env.git
+      - git fetch {.UPSTREAM_REMOTE}
+      - git merge {.UPSTREAM_REMOTE}/{.UPSTREAM_BRANCH}
+    interactive: true
+
   scrub:
     aliases: [env-scrub, env-clean]
     desc: Clean python virtual environment by removing specified files and folders

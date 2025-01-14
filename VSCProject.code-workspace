@@ -31,16 +31,15 @@
   },
   "extensions": {
     "recommendations": [
-      "bmalehorn.shell-syntax",
-      "charliermarsh.ruff",
-      "ms-python.debugpy",
-      "ms-python.pylint",
       "ms-python.python",
-      "ms-python.vscode-pylance",
       "ms-toolsai.jupyter",
-      "njqdev.vscode-python-typehint",
+      "bmalehorn.shell-syntax",
       "tamasfe.even-better-toml",
-      "task.vscode-task"
+      "task.vscode-task",
+      "ms-python.vscode-pylance",
+      "ms-python.pylint",
+      "ms-python.debugpy",
+      // "charliermarsh.ruff",
     ]
   }
 }
