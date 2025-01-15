@@ -106,6 +106,9 @@ disable = [
     "use-dict-literal",
     "fixme",
     "logging-fstring-interpolation",
+]
+[tool.pylint."comosoco/*"]
+disable = [
     ### memo ###
     "redefined-outer-name",
     "undefined-variable",
@@ -113,7 +116,6 @@ disable = [
     "function-redefined", ### E0102
     "not-callable", ### E1102
 ]
-ignore = []
 
 
 [tool.pyright]

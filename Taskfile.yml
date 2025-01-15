@@ -42,7 +42,7 @@ tasks:
         vars:
           VENV_CMD: 'which python'
 
-  update:
+  update-python:
     aliases: [update-deps, env-update, env-update-deps]
     deps: [check-install]
     cmds:
@@ -52,7 +52,24 @@ tasks:
       - uv sync
       # - uv sync --upgrade
 
+  update-brew:
+    desc: Update Homebrew packages if Homebrew is installed
+    cmds:
+      - |
+        if command -v brew >/dev/null 2>&1; then
+          echo "Homebrew is installed. Updating packages..."
+          brew update && brew upgrade
+          brew cleanup
+          brew autoremove
+          echo "✨ Homebrew update complete!"
+        else
+          # echo "❌ Homebrew is not installed. Please install it first: https://brew.sh"
+          exit 1
+        fi
+    silent: true
+
   pull-origin:
+    aliases: [git-pull-origin]
     vars:
       UPSTREAM_REMOTE: 'origin'
       UPSTREAM_BRANCH: 'main'
@@ -61,7 +78,8 @@ tasks:
       - git merge {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
     interactive: true
 
-  pull:
+  pull-upstream:
+    aliases: [pull, git-pull, git-pull-upstream]
     vars:
       UPSTREAM_REMOTE: 'upstream'
       UPSTREAM_BRANCH: 'main'
@@ -76,6 +94,13 @@ tasks:
       - git fetch {{.UPSTREAM_REMOTE}}
       - git merge {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
     interactive: true
+
+  update:
+    deps: [check-install]
+    cmds:
+      - task: update-brew
+      - task: pull-upstream
+      - task: update-python
 
   scrub:
     aliases: [env-scrub, env-clean]
