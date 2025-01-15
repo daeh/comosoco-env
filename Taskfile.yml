@@ -68,21 +68,11 @@ tasks:
         fi
     silent: true
 
-  pull-origin:
-    aliases: [git-pull-origin]
-    vars:
-      UPSTREAM_REMOTE: 'origin'
-      UPSTREAM_BRANCH: 'main'
-    cmds:
-      - git fetch {{.UPSTREAM_REMOTE}}
-      - git merge {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
+  exc-git-add-remote:
+    internal: true
     interactive: true
-
-  pull-upstream:
-    aliases: [pull, git-pull, git-pull-upstream]
     vars:
-      UPSTREAM_REMOTE: 'upstream'
-      UPSTREAM_BRANCH: 'main'
+      UPSTREAM_REMOTE: '{{default "World" .UPSTREAM_REMOTE}}'
     cmds:
       - |
         if git remote get-url {{.UPSTREAM_REMOTE}} >/dev/null 2>&1; then
@@ -91,9 +81,40 @@ tasks:
           echo "The upstream remote ({{.UPSTREAM_REMOTE}}) does not exist."
           git remote add {{.UPSTREAM_REMOTE}} https://github.com/daeh/comosoco-env.git
         fi
+
+  exc-git-pull:
+    internal: true
+    interactive: true
+    vars:
+      UPSTREAM_REMOTE: '{{default "origin" .UPSTREAM_REMOTE}}'
+      UPSTREAM_BRANCH: '{{default "main" .UPSTREAM_BRANCH}}'
+    cmds:
       - git fetch {{.UPSTREAM_REMOTE}}
       - git merge {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
+
+  pull-origin:
+    aliases: [git-pull-origin]
     interactive: true
+    vars:
+      UPSTREAM_REMOTE: 'origin'
+      UPSTREAM_BRANCH: 'main'
+    cmds:
+      - task: exc-git-pull
+        vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}', UPSTREAM_BRANCH: '{{.UPSTREAM_BRANCH}}' }
+        silent: true
+
+  pull-upstream:
+    aliases: [pull, git-pull, git-pull-upstream]
+    vars:
+      UPSTREAM_REMOTE: 'upstream'
+      UPSTREAM_BRANCH: 'main'
+    cmds:
+      - task: exc-git-add-remote
+        vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}' }
+        silent: true
+      - task: exc-git-pull
+        vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}', UPSTREAM_BRANCH: '{{.UPSTREAM_BRANCH}}' }
+        silent: true
 
   update:
     deps: [check-install]
