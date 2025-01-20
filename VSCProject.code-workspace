@@ -38,6 +38,7 @@
       "ms-toolsai.jupyter",
       "bmalehorn.shell-syntax",
       "tamasfe.even-better-toml",
+      "redhat.vscode-yaml",
       "task.vscode-task",
       "ms-python.vscode-pylance",
       "ms-python.pylint",

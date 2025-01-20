@@ -45,12 +45,20 @@ tasks:
   update-python:
     aliases: [update-deps, env-update, env-update-deps]
     deps: [check-install]
+    vars:
+      DYNAMIC_PATTERNS: [
+        '*.egg-info',
+      ]
     cmds:
       - cmd: rm "uv.lock"
         ignore_error: true
       - uv lock --upgrade
       - uv sync
       # - uv sync --upgrade
+      - for:
+          var: DYNAMIC_PATTERNS
+        cmd: |
+          find "{{.ROOT_DIR}}" -type d -name "{{.ITEM}}" -exec rm -r {} +
 
   update-brew:
     desc: Update Homebrew packages if Homebrew is installed
@@ -92,9 +100,22 @@ tasks:
       - git fetch {{.UPSTREAM_REMOTE}}
       - git merge {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
 
+  reset-upstream:
+    aliases: [git-reset-hard]
+    silent: false
+    vars:
+      UPSTREAM_REMOTE: 'upstream'
+      UPSTREAM_BRANCH: 'main'
+    cmds:
+      - task: exc-git-add-remote
+        vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}' }
+        silent: true
+      - git fetch origin
+      - git reset --hard {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
+
   pull-origin:
     aliases: [git-pull-origin]
-    interactive: true
+    silent: false
     vars:
       UPSTREAM_REMOTE: 'origin'
       UPSTREAM_BRANCH: 'main'
@@ -105,6 +126,7 @@ tasks:
 
   pull-upstream:
     aliases: [pull, git-pull, git-pull-upstream]
+    silent: false
     vars:
       UPSTREAM_REMOTE: 'upstream'
       UPSTREAM_BRANCH: 'main'
