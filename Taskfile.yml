@@ -97,6 +97,7 @@ tasks:
       UPSTREAM_REMOTE: '{{default "origin" .UPSTREAM_REMOTE}}'
       UPSTREAM_BRANCH: '{{default "main" .UPSTREAM_BRANCH}}'
     cmds:
+      - git restore comosoco/installation-test.ipynb ### TEMP
       - git fetch {{.UPSTREAM_REMOTE}}
       - git merge {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
 
