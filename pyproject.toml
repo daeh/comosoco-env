@@ -107,6 +107,7 @@ disable = [
     "fixme",
     "logging-fstring-interpolation",
 ]
+
 [tool.pylint."comosoco/*"]
 disable = [
     ### memo ###
@@ -115,6 +116,8 @@ disable = [
     "used-before-assignment",
     "function-redefined", ### E0102
     "not-callable", ### E1102
+    "no-member", ### E1101
+    "unexpected-keyword-arg", ### E1123:unexpected-keyword-arg
 ]
 
 

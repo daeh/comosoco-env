@@ -2,6 +2,8 @@ version: '3'
 
 ### TODO: update to support windows, e.g. https://github.com/joelvaneenwyk/win-flex-bison/blob/df95183c0af4ddf8a1d7a1018e9aac74c2cb9f8c/taskfile.yml#L115
 
+# output: prefixed
+
 vars:
   VENV_DIR: '.venv'
   PRIOR_ENV_LOCKS_DIR: '_prior_environments'
