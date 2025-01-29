@@ -34,6 +34,8 @@ dependencies = [
     ### plotting ###
     "matplotlib>=3.10.0",
     "seaborn>=0.13.2",
+    "ipywidgets>=8.1.5",
+    "plotly<6.0.0", ### currently a version conflict
     ### publishing ###
     # "pre-commit>=4.0.1",
     ### memo ###
