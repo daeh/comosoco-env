@@ -6,7 +6,7 @@ description = "template environment for the course"
 license = {text = "MIT"}
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.13.1"
+requires-python = ">=3.13.2"
 dependencies = [
     ### interactive kernel ###
     "ipykernel>=6.29.5",
@@ -40,7 +40,7 @@ dependencies = [
     # "pre-commit>=4.0.1",
     ### memo ###
     "jax>=0.5.0",
-    "memo-lang>=1.0.0",
+    "memo-lang>=1.0.2",
     "xarray>=2025.1.1",
     "graphviz>=0.20.3",
 ]
