@@ -82,7 +82,7 @@ tasks:
     internal: true
     interactive: true
     vars:
-      UPSTREAM_REMOTE: '{{default "World" .UPSTREAM_REMOTE}}'
+      UPSTREAM_REMOTE: '{{default "origin" .UPSTREAM_REMOTE}}'
     cmds:
       - |
         if git remote get-url {{.UPSTREAM_REMOTE}} >/dev/null 2>&1; then
@@ -103,6 +103,27 @@ tasks:
       - git fetch {{.UPSTREAM_REMOTE}}
       - git merge {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
 
+  exc-check-git:
+    desc: Check if Git is installed and initialize repository if needed
+    internal: true
+    cmds:
+      # Check if git command exists
+      - |
+        if ! command -v git >/dev/null 2>&1; then
+          echo "Error: Git is not installed"
+          exit 1
+        fi
+      
+      # Check if current directory is a git repository
+      - |
+        if ! git rev-parse --git-dir > /dev/null 2>&1; then
+          echo "Not a git repository. Initializing..."
+          git init
+          echo "Git repository initialized successfully"
+        else
+          echo "Directory is already a git repository"
+        fi
+
   reset-upstream:
     aliases: [git-reset-hard]
     silent: false
@@ -110,10 +131,11 @@ tasks:
       UPSTREAM_REMOTE: 'upstream'
       UPSTREAM_BRANCH: 'main'
     cmds:
+      - task: exc-check-git
       - task: exc-git-add-remote
         vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}' }
         silent: true
-      - git fetch origin
+      - git fetch '{{.UPSTREAM_REMOTE}}'
       - git reset --hard {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
 
   pull-origin:
