@@ -6,10 +6,30 @@ version: '3'
 
 vars:
   VENV_DIR: '.venv'
-  PRIOR_ENV_LOCKS_DIR: '_prior_environments'
+  PRIOR_ENV_LOCKS: '_prior_environments'
   SRC_DIR: 'comosoco'
+  ENTRY_PATH:
+    sh: echo "$(pwd)"
 
 tasks:
+  _show-paths:
+    vars:
+      VENV_ACTIVATE: '{{joinPath .ENTRY_PATH .VENV_DIR "bin" "activate"}}'
+      PATH_ENVLOCKS: '{{joinPath .ENTRY_PATH .PRIOR_ENV_LOCKS}}'
+    silent: true
+    cmds:
+      - printenv
+      - echo -e "\033[0m"  # Reset color
+      - echo "current directory -- $(pwd)"
+      - echo "PWD -- $(PWD)"
+      - echo ".ENTRY_PATH -- {{.ENTRY_PATH}}"
+      - echo ".ROOT_DIR -- {{.ROOT_DIR}}"
+      - echo ".USER_WORKING_DIR -- {{.USER_WORKING_DIR}}"
+      - echo ".VENV_DIR -- {{.VENV_DIR}}"
+      - echo ".VENV_ACTIVATE -- {{.VENV_ACTIVATE}}"
+      - echo ".PATH_ENVLOCKS -- {{.PATH_ENVLOCKS}}"
+      - echo ".PRIOR_ENV_LOCKS -- {{.PRIOR_ENV_LOCKS}}"
+      - echo ".SRC_DIR -- {{.SRC_DIR}}"
 
   check-installable:
     internal: true
@@ -47,20 +67,12 @@ tasks:
   update-python:
     aliases: [update-deps, env-update, env-update-deps]
     deps: [check-install]
-    vars:
-      DYNAMIC_PATTERNS: [
-        '*.egg-info',
-      ]
     cmds:
       - cmd: rm "uv.lock"
         ignore_error: true
       - uv lock --upgrade
       - uv sync
       # - uv sync --upgrade
-      - for:
-          var: DYNAMIC_PATTERNS
-        cmd: |
-          find "{{.ROOT_DIR}}" -type d -name "{{.ITEM}}" -exec rm -r {} +
 
   update-brew:
     desc: Update Homebrew packages if Homebrew is installed
@@ -125,6 +137,8 @@ tasks:
         fi
 
   reset-upstream:
+    desc: "initializes git repo if it does not exist, adds remote 'upstream', does hard reset on local repo"
+    prompt: "This overwrites files with the versions on the remote repository. You should backup your work before proceeding. Continue?"
     aliases: [git-reset-hard]
     silent: false
     vars:
@@ -139,6 +153,7 @@ tasks:
       - git reset --hard {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
 
   pull-origin:
+    desc: "required that project is a git repo"
     aliases: [git-pull-origin]
     silent: false
     vars:
@@ -150,6 +165,7 @@ tasks:
         silent: true
 
   pull-upstream:
+    desc: "requires that project is a git repo"
     aliases: [pull, git-pull, git-pull-upstream]
     silent: false
     vars:
@@ -164,6 +180,7 @@ tasks:
         silent: true
 
   update:
+    desc: "requires that project is a git repo"
     deps: [check-install]
     cmds:
       - task: update-brew
@@ -174,7 +191,7 @@ tasks:
     aliases: [env-scrub, env-clean]
     desc: Clean python virtual environment by removing specified files and folders
     vars:
-      RMLIST: [
+      RM_LIST: [
           ### Files ###
           'uv.lock',
           'conda-lock.yml',
@@ -187,8 +204,7 @@ tasks:
           '.ruff_cache',
           '.task',
         ]
-      DYNAMIC_PATTERNS: [
-        '*.egg-info',
+      RM_DIR_PATTERNS: [
         '.jupyter_cache',
         '__pycache__',
         '.ipynb_checkpoints',
@@ -197,7 +213,7 @@ tasks:
     silent: true
     cmds:
       - for:
-          var: RMLIST
+          var: RM_LIST
         cmd: |
           if [ -f "{{.ITEM}}" ]; then
             rm "{{.ITEM}}"
@@ -205,7 +221,7 @@ tasks:
             rm -r "{{.ITEM}}"
           fi
       - for:
-          var: DYNAMIC_PATTERNS
+          var: RM_DIR_PATTERNS
         cmd: |
           echo "Searching and removing directories matching '{{.ITEM}}'"
           find "{{.ROOT_DIR}}" -type d -name "{{.ITEM}}" -exec rm -r {} +
@@ -216,26 +232,24 @@ tasks:
     prompt: Install python virtual env (will overwrite any existing env)?
     platforms: [darwin, linux]
     vars:
+      SRC_DIR: '{{default .SRC_DIR_DEFAULT .SRC_DIR}}'
       DATE_STR_DEFAULT: '$(date +%Y-%m-%d)'
       DATE_STR: '{{default .DATE_STR_DEFAULT .DATE_STR}}'
       FNAME_PYPROJECTCOPY: 'pyproject-{{.DATE_STR}}.toml'
       FNAME_UVLOCK: 'uv-{{.DATE_STR}}.lock'
       FNAME_PIPFREEZE: 'requirements-{{.DATE_STR}}.txt'
-      PATH_ENVLOCKS: '{{joinPath .ROOT_DIR .PRIOR_ENV_LOCKS_DIR}}'
+      PATH_ENVLOCKS: '{{joinPath .ROOT_DIR .PRIOR_ENV_LOCKS}}'
       PATH_PYPROJECTCOPY: '{{joinPath .PATH_ENVLOCKS .FNAME_PYPROJECTCOPY}}'
       PATH_UVLOCK: '{{joinPath .PATH_ENVLOCKS .FNAME_UVLOCK}}'
       PATH_PIPFREEZE: '{{joinPath .PATH_ENVLOCKS .FNAME_PIPFREEZE}}'
-      RMLIST: [
+      RM_FILE_LIST: [
         "{{.PATH_PYPROJECTCOPY}}",
         "{{.PATH_UVLOCK}}",
         "{{.PATH_PIPFREEZE}}",
       ]
-      DYNAMIC_PATTERNS: [
-        '*.egg-info',
-      ]
     cmds:
       - task: scrub
-      - for: {var: RMLIST}
+      - for: {var: RM_FILE_LIST}
         cmd: |
           echo "looking for {{.ITEM}}"
           if [ -f "{{.ITEM}}" ]; then
@@ -253,7 +267,4 @@ tasks:
       - task: run-zsh 
         vars:
           VENV_CMD: "uv pip list --format=freeze > '{{.PATH_PIPFREEZE}}'" ### Has to be called using `run-zsh` because `uv pip list` uses the active python env
-      - for:
-          var: DYNAMIC_PATTERNS
-        cmd: |
-          find "{{.ROOT_DIR}}" -type d -name "{{.ITEM}}" -exec rm -r {} +
+
