@@ -1,6 +1,14 @@
 #########
 ### specialized ignore patterns ###
 #########
+**/*-ignore/
+**/*-ignore-*
+**/*-ignore_*
+**/*-ignore.*
+**/*_ignore/
+**/*_ignore-*
+**/*_ignore_*
+**/*_ignore.*
 **/*-gitignore*
 **/*_gitignore*
 
@@ -30,6 +38,7 @@ _prior_environments
 ### important ###
 #########
 .env
+_env.sh
 
 #########
 ### project specific patterns ###

@@ -6,47 +6,42 @@
   ],
   "settings": {
     "window.title": "comosoco",
-    "extensions.ignoreRecommendations": false,
-    "explorer.expandSingleFolderWorkspaces": true,
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticMode": "workspace",
+    "jupyter.notebookFileRoot": "${workspaceFolder}",
+    "jupyter.interactiveWindow.creationMode": "single",
+    "jupyter.interactiveWindow.cellMarker.decorateCells": "allCells",
+    "jupyter.interactiveWindow.textEditor.executeSelection": true,
     "editor.formatOnSave": true,
     "[python]": {
-      // "editor.defaultFormatter": "charliermarsh.ruff",
-      // "editor.defaultFormatter": "ms-python.black-formatter",
       "editor.formatOnSave": false,
       "editor.codeActionsOnSave": {
         "source.fixAll": "explicit",
         "source.organizeImports": "explicit"
       }
     },
-    "python.languageServer": "Pylance",
-    "python.analysis.diagnosticMode": "workspace",
-    // "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-    "jupyter.interactiveWindow.creationMode": "single",
-    "jupyter.interactiveWindow.cellMarker.decorateCells": "allCells",
-    "jupyter.interactiveWindow.textEditor.executeSelection": true,
     "files.exclude": {
       ".venv": true,
       "_prior_environments": true,
       "**/*.lock": true,
-      "**/*.egg-info": true,
-      "assets": true,
-      "requirements*.txt": true,
+      "requirements*.txt": true
     },
-    "search.exclude": {}
+    "search.exclude": {
+      ".venv": true
+    },
+    "explorer.expandSingleFolderWorkspaces": true,
+    "extensions.ignoreRecommendations": false
   },
   "extensions": {
     "recommendations": [
       "ms-python.python",
-      "ms-toolsai.jupyter",
-      "bmalehorn.shell-syntax",
-      "tamasfe.even-better-toml",
-      "redhat.vscode-yaml",
-      "task.vscode-task",
       "ms-python.vscode-pylance",
-      "ms-python.pylint",
-      "ms-python.debugpy"
-      // "charliermarsh.ruff",
-      // "ms-python.black-formatter"
+      "ms-toolsai.jupyter",
+      "marimo-team.vscode-marimo",
+      "task.vscode-task"
     ]
   }
 }
