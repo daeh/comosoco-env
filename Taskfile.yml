@@ -1,270 +1,406 @@
 version: '3'
 
-### TODO: update to support windows, e.g. https://github.com/joelvaneenwyk/win-flex-bison/blob/df95183c0af4ddf8a1d7a1018e9aac74c2cb9f8c/taskfile.yml#L115
+# ============================================================================
+# STUDENT CODING ENVIRONMENT - TASKFILE
+# ============================================================================
+# Build automation for the CoMoSoCo student coding environment.
+# Uses uv for Python package management.
+#
+# Common commands:
+#   task install    - Install Python virtual environment
+#   task update     - Update all dependencies
+#   task pull       - Pull latest from upstream repository
+#   task scrub      - Clean environment and caches
+#   task status     - Show environment status
+# ============================================================================
 
-# output: prefixed
+# ============================================================================
+# GLOBAL VARIABLES
+# ============================================================================
 
 vars:
-  VENV_DIR: '.venv'
-  PRIOR_ENV_LOCKS: '_prior_environments'
-  SRC_DIR: 'comosoco'
-  ENTRY_PATH:
-    sh: echo "$(pwd)"
+  # --- Defaults ---
+  VENV_DIR_DEFAULT: '.venv'
+  PRIOR_ENV_LOCKS_DEFAULT: '_prior_environments'
+  SRC_DIR_DEFAULT: 'comosoco'
+  UPSTREAM_REMOTE_DEFAULT: 'upstream'
+  UPSTREAM_BRANCH_DEFAULT: 'main'
+  UPSTREAM_URL_DEFAULT: 'https://github.com/daeh/comosoco-env.git'
+
+  # --- Resolved (allow override from CLI or environment) ---
+  VENV_DIR_RESOLVED: '{{default .VENV_DIR_DEFAULT .VENV_DIR}}'
+  PRIOR_ENV_LOCKS_RESOLVED: '{{default .PRIOR_ENV_LOCKS_DEFAULT .PRIOR_ENV_LOCKS}}'
+  SRC_DIR_RESOLVED: '{{default .SRC_DIR_DEFAULT .SRC_DIR}}'
+  UPSTREAM_REMOTE_RESOLVED: '{{default .UPSTREAM_REMOTE_DEFAULT .UPSTREAM_REMOTE}}'
+  UPSTREAM_BRANCH_RESOLVED: '{{default .UPSTREAM_BRANCH_DEFAULT .UPSTREAM_BRANCH}}'
+  UPSTREAM_URL_RESOLVED: '{{default .UPSTREAM_URL_DEFAULT .UPSTREAM_URL}}'
+
+  # --- Derived paths ---
+  VENV_PATH: '{{joinPath .ROOT_DIR .VENV_DIR_RESOLVED}}'
+  VENV_ACTIVATE_PATH: '{{joinPath .VENV_PATH "bin" "activate"}}'
+  VENV_PYTHON_PATH: '{{joinPath .VENV_PATH "bin" "python"}}'
+  PATH_ENVLOCKS: '{{joinPath .ROOT_DIR .PRIOR_ENV_LOCKS_RESOLVED}}'
 
 tasks:
-  _show-paths:
-    vars:
-      VENV_ACTIVATE: '{{joinPath .ENTRY_PATH .VENV_DIR "bin" "activate"}}'
-      PATH_ENVLOCKS: '{{joinPath .ENTRY_PATH .PRIOR_ENV_LOCKS}}'
+
+  # ============================================================================
+  # DEFAULT
+  # ============================================================================
+
+  default:
+    desc: Show available tasks
     silent: true
     cmds:
-      - printenv
-      - echo -e "\033[0m"  # Reset color
-      - echo "current directory -- $(pwd)"
-      - echo "PWD -- $(PWD)"
-      - echo ".ENTRY_PATH -- {{.ENTRY_PATH}}"
-      - echo ".ROOT_DIR -- {{.ROOT_DIR}}"
-      - echo ".USER_WORKING_DIR -- {{.USER_WORKING_DIR}}"
-      - echo ".VENV_DIR -- {{.VENV_DIR}}"
-      - echo ".VENV_ACTIVATE -- {{.VENV_ACTIVATE}}"
-      - echo ".PATH_ENVLOCKS -- {{.PATH_ENVLOCKS}}"
-      - echo ".PRIOR_ENV_LOCKS -- {{.PRIOR_ENV_LOCKS}}"
-      - echo ".SRC_DIR -- {{.SRC_DIR}}"
+      - task --list
 
-  check-installable:
-    internal: true
-    preconditions:
-      - test -f "pyproject.toml"
+  # ============================================================================
+  # ENVIRONMENT MANAGEMENT
+  # ============================================================================
 
-  check-install:
-    internal: true
-    vars:
-      VENV_ACTIVATE: '{{joinPath .VENV_DIR "bin" "activate"}}'
-    preconditions:
-      - test -f "pyproject.toml"
-      - test -f "uv.lock"
-      - test -d "{{.VENV_DIR}}"
-      - test -f "{{.VENV_ACTIVATE}}"
-
-  run-zsh:
-    aliases: [shell, zsh]
-    internal: true
-    deps: [check-install]
-    vars:
-      VENV_ACTIVATE: '{{joinPath .VENV_DIR "bin" "activate"}}'
+  install:
+    desc: Install Python virtual environment (WARNING - overwrites existing env)
+    aliases: [env-install]
+    prompt: Install Python virtual env? (this will overwrite any existing env)
+    platforms: [darwin, linux]
+    silent: true
+    deps: [_check-installable]
     cmds:
-      - >
-        zsh -i -c 'source "{{.VENV_ACTIVATE}}" && {{.VENV_CMD}}'
-    preconditions:
-      - test -f "{{.VENV_ACTIVATE}}"
-
-  debug-which-python:
-    cmds:
-      - task: run-zsh
-        vars:
-          VENV_CMD: 'which python'
-
-  update-python:
-    aliases: [update-deps, env-update, env-update-deps]
-    deps: [check-install]
-    cmds:
-      - cmd: rm "uv.lock"
-        ignore_error: true
-      - uv lock --upgrade
+      - printf 'Installing Python environment...\n'
+      - task: scrub
       - uv sync
-      # - uv sync --upgrade
-
-  update-brew:
-    desc: Update Homebrew packages if Homebrew is installed
-    cmds:
-      - |
-        if command -v brew >/dev/null 2>&1; then
-          echo "Homebrew is installed. Updating packages..."
-          brew update && brew upgrade
-          brew cleanup
-          brew autoremove
-          echo "✨ Homebrew update complete!"
-        else
-          # echo "❌ Homebrew is not installed. Please install it first: https://brew.sh"
-          exit 1
-        fi
-    silent: true
-
-  exc-git-add-remote:
-    internal: true
-    interactive: true
-    vars:
-      UPSTREAM_REMOTE: '{{default "origin" .UPSTREAM_REMOTE}}'
-    cmds:
-      - |
-        if git remote get-url {{.UPSTREAM_REMOTE}} >/dev/null 2>&1; then
-          echo "Fetching changes from {{.UPSTREAM_REMOTE}}"
-        else
-          echo "The upstream remote ({{.UPSTREAM_REMOTE}}) does not exist."
-          git remote add {{.UPSTREAM_REMOTE}} https://github.com/daeh/comosoco-env.git
-        fi
-
-  exc-git-pull:
-    internal: true
-    interactive: true
-    vars:
-      UPSTREAM_REMOTE: '{{default "origin" .UPSTREAM_REMOTE}}'
-      UPSTREAM_BRANCH: '{{default "main" .UPSTREAM_BRANCH}}'
-    cmds:
-      - git restore comosoco/installation-test.ipynb ### TEMP
-      - git fetch {{.UPSTREAM_REMOTE}}
-      - git merge {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
-
-  exc-check-git:
-    desc: Check if Git is installed and initialize repository if needed
-    internal: true
-    cmds:
-      # Check if git command exists
-      - |
-        if ! command -v git >/dev/null 2>&1; then
-          echo "Error: Git is not installed"
-          exit 1
-        fi
-      
-      # Check if current directory is a git repository
-      - |
-        if ! git rev-parse --git-dir > /dev/null 2>&1; then
-          echo "Not a git repository. Initializing..."
-          git init
-          echo "Git repository initialized successfully"
-        else
-          echo "Directory is already a git repository"
-        fi
-
-  reset-upstream:
-    desc: "initializes git repo if it does not exist, adds remote 'upstream', does hard reset on local repo"
-    prompt: "This overwrites files with the versions on the remote repository. You should backup your work before proceeding. Continue?"
-    aliases: [git-reset-hard]
-    silent: false
-    vars:
-      UPSTREAM_REMOTE: 'upstream'
-      UPSTREAM_BRANCH: 'main'
-    cmds:
-      - task: exc-check-git
-      - task: exc-git-add-remote
-        vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}' }
-        silent: true
-      - git fetch '{{.UPSTREAM_REMOTE}}'
-      - git reset --hard {{.UPSTREAM_REMOTE}}/{{.UPSTREAM_BRANCH}}
-
-  pull-origin:
-    desc: "required that project is a git repo"
-    aliases: [git-pull-origin]
-    silent: false
-    vars:
-      UPSTREAM_REMOTE: 'origin'
-      UPSTREAM_BRANCH: 'main'
-    cmds:
-      - task: exc-git-pull
-        vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}', UPSTREAM_BRANCH: '{{.UPSTREAM_BRANCH}}' }
-        silent: true
-
-  pull-upstream:
-    desc: "requires that project is a git repo"
-    aliases: [pull, git-pull, git-pull-upstream]
-    silent: false
-    vars:
-      UPSTREAM_REMOTE: 'upstream'
-      UPSTREAM_BRANCH: 'main'
-    cmds:
-      - task: exc-git-add-remote
-        vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}' }
-        silent: true
-      - task: exc-git-pull
-        vars: { UPSTREAM_REMOTE: '{{.UPSTREAM_REMOTE}}', UPSTREAM_BRANCH: '{{.UPSTREAM_BRANCH}}' }
-        silent: true
+      - task: _exc-store-env-state
+      - printf '✅ Environment installed successfully!\n'
+      - task: status
 
   update:
-    desc: "requires that project is a git repo"
-    deps: [check-install]
+    desc: Update Python dependencies to latest compatible versions
+    aliases: [update-deps, env-update]
+    silent: true
+    deps: [_check-install]
+    cmds:
+      - printf 'Updating dependencies...\n'
+      - test -f "uv.lock" && find "uv.lock" -type f -delete || true
+      - uv sync --upgrade
+      - task: _exc-store-env-state
+      - printf '✅ Dependencies updated successfully!\n'
+
+  update-all:
+    desc: Update everything (Homebrew, git upstream, Python dependencies)
+    aliases: [full-update]
+    silent: true
+    deps: [_check-install]
     cmds:
       - task: update-brew
-      - task: pull-upstream
-      - task: update-python
+      - task: pull
+      - task: update
 
   scrub:
-    aliases: [env-scrub, env-clean]
-    desc: Clean python virtual environment by removing specified files and folders
+    desc: Clean virtual environment and caches (DESTRUCTIVE)
+    aliases: [env-scrub, env-clean, clean]
+    ignore_error: true
+    silent: true
     vars:
-      RM_LIST: [
-          ### Files ###
-          'uv.lock',
-          'conda-lock.yml',
-          'conda-*.lock',
-          'requirements.txt',
-          'requirements*.txt',
-          ### Folders ###
-          '{{.VENV_DIR}}',
-          '.venv',
-          '.ruff_cache',
-          '.task',
-        ]
-      RM_DIR_PATTERNS: [
-        '.jupyter_cache',
+      RM_STATIC_FILE_LIST: [
+        'uv.lock',
+        'requirements.txt',
+      ]
+      RM_STATIC_DIR_LIST: [
+        '{{.VENV_PATH}}',
+        '.ruff_cache',
+        '.pytest_cache',
+        '.task',
+      ]
+      RM_FILE_ROOT_PATTERNS: [
+        'requirements*.txt',
+      ]
+      RM_DIR_RECURSIVE_PATTERNS: [
         '__pycache__',
         '.ipynb_checkpoints',
       ]
+    cmds:
+      - printf 'Cleaning project...\n'
+      # Remove static files from project root
+      - for: { var: RM_STATIC_FILE_LIST }
+        cmd: |
+          if [ -f "{{.ITEM}}" ]; then
+            printf '  Removing %s\n' "{{.ITEM}}"
+            find "{{.ITEM}}" -type f -delete
+          fi
+      # Remove static directories from project root
+      - for: { var: RM_STATIC_DIR_LIST }
+        cmd: |
+          if [ -d "{{.ITEM}}" ]; then
+            printf '  Removing %s/\n' "{{.ITEM}}"
+            rm -r "{{.ITEM}}"
+          fi
+      # Remove files matching patterns in project root
+      - for: { var: RM_FILE_ROOT_PATTERNS }
+        cmd: >
+          find "{{.ROOT_DIR}}"
+          -maxdepth 1
+          -type f
+          -name "{{.ITEM}}"
+          -exec printf "  Removing %s\n" {} \;
+          -delete
+      # Remove directories matching patterns recursively
+      - for: { var: RM_DIR_RECURSIVE_PATTERNS }
+        cmd: >
+          find "{{.ROOT_DIR}}"
+          -type d
+          -name "{{.ITEM}}"
+          -exec printf "  Removing %s\n" {} \;
+          -exec rm -r {} + 2>/dev/null || true
+      - printf '✅ Clean complete\n'
+
+  # ============================================================================
+  # GIT OPERATIONS
+  # ============================================================================
+
+  pull:
+    desc: Pull latest changes from upstream repository
+    aliases: [git-pull, pull-upstream]
+    silent: true
+    cmds:
+      - task: _exc-git-add-remote
+      - printf 'Fetching from %s...\n' "{{.UPSTREAM_REMOTE_RESOLVED}}"
+      - git fetch "{{.UPSTREAM_REMOTE_RESOLVED}}"
+      - git merge "{{.UPSTREAM_REMOTE_RESOLVED}}/{{.UPSTREAM_BRANCH_RESOLVED}}"
+      - printf '✅ Pull complete\n'
+
+  pull-origin:
+    desc: Pull latest changes from origin repository
+    aliases: [git-pull-origin]
+    silent: true
+    vars:
+      UPSTREAM_REMOTE_RESOLVED: 'origin'
+      UPSTREAM_BRANCH_RESOLVED: 'main'
+    cmds:
+      - printf 'Fetching from origin...\n'
+      - git fetch origin
+      - git merge origin/main
+      - printf '✅ Pull complete\n'
+
+  reset-upstream:
+    desc: Hard reset local repo to match upstream (WARNING - DESTRUCTIVE)
+    aliases: [git-reset-hard]
+    prompt: This overwrites files with versions from upstream. Backup your work first! Continue?
+    silent: true
+    cmds:
+      - task: _exc-check-git
+      - task: _exc-git-add-remote
+      - printf 'Fetching from %s...\n' "{{.UPSTREAM_REMOTE_RESOLVED}}"
+      - git fetch "{{.UPSTREAM_REMOTE_RESOLVED}}"
+      - printf '⚠️  Resetting to %s/%s...\n' "{{.UPSTREAM_REMOTE_RESOLVED}}" "{{.UPSTREAM_BRANCH_RESOLVED}}"
+      - git reset --hard "{{.UPSTREAM_REMOTE_RESOLVED}}/{{.UPSTREAM_BRANCH_RESOLVED}}"
+      - printf '✅ Reset complete\n'
+
+  # ============================================================================
+  # UTILITIES
+  # ============================================================================
+
+  update-brew:
+    desc: Update Homebrew packages (macOS only)
+    platforms: [darwin]
     ignore_error: true
     silent: true
     cmds:
-      - for:
-          var: RM_LIST
-        cmd: |
-          if [ -f "{{.ITEM}}" ]; then
-            rm "{{.ITEM}}"
-          elif [ -d "{{.ITEM}}" ]; then
-            rm -r "{{.ITEM}}"
-          fi
-      - for:
-          var: RM_DIR_PATTERNS
-        cmd: |
-          echo "Searching and removing directories matching '{{.ITEM}}'"
-          find "{{.ROOT_DIR}}" -type d -name "{{.ITEM}}" -exec rm -r {} +
+      - |
+        if command -v brew >/dev/null 2>&1; then
+          printf 'Updating Homebrew packages...\n'
+          brew update && brew upgrade
+          brew cleanup
+          brew autoremove
+          printf '✅ Homebrew update complete\n'
+        else
+          printf '⚠️  Homebrew not installed, skipping\n'
+        fi
 
-  install:
-    aliases: [env-install]
-    deps: [check-installable]
-    prompt: Install python virtual env (will overwrite any existing env)?
-    platforms: [darwin, linux]
+  activate:
+    desc: Open a subshell with the virtual environment activated
+    aliases: [shell]
+    interactive: true
+    silent: true
+    deps: [_check-install]
+    cmds:
+      - printf 'Opening shell with virtual environment...\n'
+      - printf '  (Type "exit" or press Ctrl+D to return)\n'
+      - zsh -i -c 'source "{{.VENV_ACTIVATE_PATH}}" && zsh'
+
+  status:
+    desc: Show current environment status
+    aliases: [env-status, info]
+    silent: true
+    cmds:
+      - |
+        printf '=== Environment Status ===\n'
+
+        if [ -d "{{.VENV_PATH}}" ]; then
+          printf '  Virtual environment: ✅ %s\n' "{{.VENV_DIR_RESOLVED}}"
+          if [ -f "{{.VENV_PYTHON_PATH}}" ]; then
+            PYTHON_VERSION=$("{{.VENV_PYTHON_PATH}}" --version 2>&1)
+            printf '    Python: %s\n' "$PYTHON_VERSION"
+          fi
+        else
+          printf '  Virtual environment: ❌ not found\n'
+        fi
+
+        if [ -f "uv.lock" ]; then
+          printf '  Lock file: ✅ uv.lock\n'
+        else
+          printf '  Lock file: ❌ missing\n'
+        fi
+
+        if [ -f "pyproject.toml" ]; then
+          printf '  Project file: ✅ pyproject.toml\n'
+        else
+          printf '  Project file: ❌ missing\n'
+        fi
+
+        printf '\n'
+        printf '  Project root: %s\n' "{{.ROOT_DIR}}"
+        printf '  Source dir: %s\n' "{{.SRC_DIR_RESOLVED}}"
+
+  # ============================================================================
+  # INTERNAL HELPER TASKS
+  # ============================================================================
+
+  # --- Check Tasks ---
+
+  _check-installable:
+    desc: Check if project can be installed
+    internal: true
+    preconditions:
+      - sh: test -f "pyproject.toml"
+        msg: |
+          ❌ No pyproject.toml found.
+          This file is required for installation.
+
+  _check-install:
+    desc: Verify virtual environment is properly installed
+    internal: true
+    preconditions:
+      - sh: test -f "pyproject.toml"
+        msg: |
+          ❌ No pyproject.toml found.
+      - sh: test -f "uv.lock"
+        msg: |
+          ❌ No uv.lock found. Run 'task install' first.
+      - sh: test -d "{{.VENV_PATH}}"
+        msg: |
+          ❌ Virtual environment not found at {{.VENV_PATH}}.
+          Run 'task install' first.
+      - sh: test -f "{{.VENV_ACTIVATE_PATH}}"
+        msg: |
+          ❌ Virtual environment activate script not found.
+          Run 'task install' to recreate the environment.
+
+  _exc-check-git:
+    desc: Check if Git is installed and initialize repository if needed
+    internal: true
+    silent: true
+    cmds:
+      - |
+        if ! command -v git >/dev/null 2>&1; then
+          printf '❌ Git is not installed\n'
+          exit 1
+        fi
+      - |
+        if ! git rev-parse --git-dir > /dev/null 2>&1; then
+          printf 'Not a git repository. Initializing...\n'
+          git init
+          printf '✅ Git repository initialized\n'
+        fi
+
+  # --- Execution Helpers ---
+
+  _exc-git-add-remote:
+    desc: Add upstream remote if it does not exist
+    internal: true
+    silent: true
+    cmds:
+      - |
+        if git remote get-url "{{.UPSTREAM_REMOTE_RESOLVED}}" >/dev/null 2>&1; then
+          printf '  Remote "%s" exists\n' "{{.UPSTREAM_REMOTE_RESOLVED}}"
+        else
+          printf '  Adding remote "%s" -> %s\n' "{{.UPSTREAM_REMOTE_RESOLVED}}" "{{.UPSTREAM_URL_RESOLVED}}"
+          git remote add "{{.UPSTREAM_REMOTE_RESOLVED}}" "{{.UPSTREAM_URL_RESOLVED}}"
+        fi
+
+  _exc-store-env-state:
+    desc: Save current environment state for rollback
+    internal: true
+    silent: true
     vars:
-      SRC_DIR: '{{default .SRC_DIR_DEFAULT .SRC_DIR}}'
-      DATE_STR_DEFAULT: '$(date +%Y-%m-%d)'
-      DATE_STR: '{{default .DATE_STR_DEFAULT .DATE_STR}}'
-      FNAME_PYPROJECTCOPY: 'pyproject-{{.DATE_STR}}.toml'
+      DATE_STR:
+        sh: date +%Y-%m-%d
+      FNAME_PYPROJECT: 'pyproject-{{.DATE_STR}}.toml'
       FNAME_UVLOCK: 'uv-{{.DATE_STR}}.lock'
       FNAME_PIPFREEZE: 'requirements-{{.DATE_STR}}.txt'
-      PATH_ENVLOCKS: '{{joinPath .ROOT_DIR .PRIOR_ENV_LOCKS}}'
-      PATH_PYPROJECTCOPY: '{{joinPath .PATH_ENVLOCKS .FNAME_PYPROJECTCOPY}}'
+      PATH_PYPROJECT: '{{joinPath .PATH_ENVLOCKS .FNAME_PYPROJECT}}'
       PATH_UVLOCK: '{{joinPath .PATH_ENVLOCKS .FNAME_UVLOCK}}'
       PATH_PIPFREEZE: '{{joinPath .PATH_ENVLOCKS .FNAME_PIPFREEZE}}'
-      RM_FILE_LIST: [
-        "{{.PATH_PYPROJECTCOPY}}",
-        "{{.PATH_UVLOCK}}",
-        "{{.PATH_PIPFREEZE}}",
-      ]
+    deps: [_check-install]
     cmds:
-      - task: scrub
-      - for: {var: RM_FILE_LIST}
-        cmd: |
-          echo "looking for {{.ITEM}}"
-          if [ -f "{{.ITEM}}" ]; then
-            echo "removing {{.ITEM}}"
-            rm "{{.ITEM}}"
-          elif [ -d "{{.ITEM}}" ]; then
-            echo "WARNING: {{.ITEM}} found is dir (and it should not be)!"
-          fi
-        silent: true
-      - uv sync
-      - cmd: mkdir -p "{{.PATH_ENVLOCKS}}"
-        silent: true
-      - cp "pyproject.toml" "{{.PATH_PYPROJECTCOPY}}"
+      - mkdir -p "{{.PATH_ENVLOCKS}}"
+      # Remove existing files for today's date (if re-running install)
+      - test -f "{{.PATH_PYPROJECT}}" && find "{{.PATH_PYPROJECT}}" -type f -delete || true
+      - test -f "{{.PATH_UVLOCK}}" && find "{{.PATH_UVLOCK}}" -type f -delete || true
+      - test -f "{{.PATH_PIPFREEZE}}" && find "{{.PATH_PIPFREEZE}}" -type f -delete || true
+      # Copy current state
+      - cp "pyproject.toml" "{{.PATH_PYPROJECT}}"
       - cp "uv.lock" "{{.PATH_UVLOCK}}"
-      - task: run-zsh 
+      # Generate pip freeze (requires activated environment)
+      - task: _run
         vars:
-          VENV_CMD: "uv pip list --format=freeze > '{{.PATH_PIPFREEZE}}'" ### Has to be called using `run-zsh` because `uv pip list` uses the active python env
+          VENV_CMD: "uv pip list --format=freeze > '{{.PATH_PIPFREEZE}}'"
+      - printf '  Environment state saved to %s/\n' "{{.PRIOR_ENV_LOCKS_RESOLVED}}"
 
+  _run:
+    desc: Run command in activated virtual environment
+    internal: true
+    requires:
+      vars: [VENV_CMD]
+    preconditions:
+      - sh: test -f "{{.VENV_ACTIVATE_PATH}}"
+        msg: |
+          ❌ Virtual environment not found.
+          Run 'task install' first.
+    cmds:
+      - zsh -i -c 'source "{{.VENV_ACTIVATE_PATH}}" && {{.VENV_CMD}}'
+
+  # ============================================================================
+  # DEBUGGING
+  # ============================================================================
+
+  debug:
+    desc: Show all paths and variables (for troubleshooting)
+    aliases: [env-debug]
+    silent: true
+    cmds:
+      - |
+        printf '=== Task Built-in Variables ===\n'
+        printf '  ROOT_DIR:           %s\n' '{{.ROOT_DIR}}'
+        printf '  TASKFILE_DIR:       %s\n' '{{.TASKFILE_DIR}}'
+        printf '  USER_WORKING_DIR:   %s\n' '{{.USER_WORKING_DIR}}'
+        printf '\n'
+        printf '=== Defaults ===\n'
+        printf '  VENV_DIR_DEFAULT:           %s\n' '{{.VENV_DIR_DEFAULT}}'
+        printf '  PRIOR_ENV_LOCKS_DEFAULT:    %s\n' '{{.PRIOR_ENV_LOCKS_DEFAULT}}'
+        printf '  SRC_DIR_DEFAULT:            %s\n' '{{.SRC_DIR_DEFAULT}}'
+        printf '  UPSTREAM_REMOTE_DEFAULT:    %s\n' '{{.UPSTREAM_REMOTE_DEFAULT}}'
+        printf '  UPSTREAM_BRANCH_DEFAULT:    %s\n' '{{.UPSTREAM_BRANCH_DEFAULT}}'
+        printf '  UPSTREAM_URL_DEFAULT:       %s\n' '{{.UPSTREAM_URL_DEFAULT}}'
+        printf '\n'
+        printf '=== Resolved ===\n'
+        printf '  VENV_DIR_RESOLVED:          %s\n' '{{.VENV_DIR_RESOLVED}}'
+        printf '  PRIOR_ENV_LOCKS_RESOLVED:   %s\n' '{{.PRIOR_ENV_LOCKS_RESOLVED}}'
+        printf '  SRC_DIR_RESOLVED:           %s\n' '{{.SRC_DIR_RESOLVED}}'
+        printf '  UPSTREAM_REMOTE_RESOLVED:   %s\n' '{{.UPSTREAM_REMOTE_RESOLVED}}'
+        printf '  UPSTREAM_BRANCH_RESOLVED:   %s\n' '{{.UPSTREAM_BRANCH_RESOLVED}}'
+        printf '  UPSTREAM_URL_RESOLVED:      %s\n' '{{.UPSTREAM_URL_RESOLVED}}'
+        printf '\n'
+        printf '=== Derived Paths ===\n'
+        printf '  VENV_PATH:          %s\n' '{{.VENV_PATH}}'
+        printf '  VENV_ACTIVATE_PATH: %s\n' '{{.VENV_ACTIVATE_PATH}}'
+        printf '  VENV_PYTHON_PATH:   %s\n' '{{.VENV_PYTHON_PATH}}'
+        printf '  PATH_ENVLOCKS:      %s\n' '{{.PATH_ENVLOCKS}}'
