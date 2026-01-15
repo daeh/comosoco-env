@@ -6,6 +6,7 @@
   ],
   "settings": {
     "window.title": "comosoco",
+    "extensions.ignoreRecommendations": false,
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "python.terminal.activateEnvironment": true,
     "python.languageServer": "Pylance",
@@ -33,7 +34,6 @@
       ".venv": true
     },
     "explorer.expandSingleFolderWorkspaces": true,
-    "extensions.ignoreRecommendations": false
   },
   "extensions": {
     "recommendations": [
