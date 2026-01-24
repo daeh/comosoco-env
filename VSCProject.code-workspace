@@ -8,7 +8,7 @@
     "window.title": "comosoco",
     "extensions.ignoreRecommendations": false,
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-    "python.terminal.activateEnvironment": true,
+    // "python.terminal.activateEnvironment": true,
     "python.languageServer": "Pylance",
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.diagnosticMode": "workspace",
@@ -16,7 +16,6 @@
     "jupyter.interactiveWindow.creationMode": "single",
     "jupyter.interactiveWindow.cellMarker.decorateCells": "allCells",
     "jupyter.interactiveWindow.textEditor.executeSelection": true,
-    "editor.formatOnSave": true,
     "[python]": {
       "editor.formatOnSave": false,
       "editor.codeActionsOnSave": {
@@ -33,7 +32,27 @@
     "search.exclude": {
       ".venv": true
     },
+    "editor.formatOnSave": true,
+    "editor.quickSuggestions": {
+      "other": false,
+      "comments": false,
+      "strings": false
+    },
+    "editor.suggestOnTriggerCharacters": false,
+    "editor.inlineSuggest.edits.showLongDistanceHint": false,
+    "editor.inlineSuggest.enabled": false,
+    "editor.inlineSuggest.experimental.emptyResponseInformation": false,
+    "editor.inlineSuggest.suppressSuggestions": true,
     "explorer.expandSingleFolderWorkspaces": true,
+    "chat.disableAIFeatures": true,
+    "workbench.secondarySideBar.defaultVisibility": "hidden",
+    "github.copilot.chat.agent.autoFix": false,
+    "github.copilot.chat.agent.currentEditorContext.enabled": false,
+    "github.copilot.chat.cloudAgent.enabled": false,
+    "github.copilot.chat.codeGeneration.useInstructionFiles": false,
+    "github.copilot.enable": {
+      "*": false
+    },
   },
   "extensions": {
     "recommendations": [
